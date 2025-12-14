@@ -1,8 +1,5 @@
-# Verified Wallet Bug Bounty(0xQuiox's submission)
-A bug bounty report for the Verified Wallet Network browser extension
-
-## Perfect. Below is a **clean, professional vulnerability report** you can submit directly (bug bounty / security disclosure / hackathon).
-It is **tight, defensible, and evidence-based** — no speculative claims.
+# Verified Wallet Bug Bounty
+A bug bounty report for the Verified Wallet Network browser extension.
 
 ---
 
@@ -224,5 +221,109 @@ if (event.origin !== EXPECTED_ORIGIN) return;
 * ✔ Console logs
 * ✔ Architecture analysis
 * ✔ Message traces
+
+
+## 2. Vulnerability Title
+
+**Client-Side Exposure of Privileged Backend Configuration in Verified Wallet Exteension
+
+### Summary
+
+The Verified Wallet browser extension bundles multiple **privileged backend configuration values** directly into client-side JavaScript, including:
+
+* Azure Function endpoints
+* Azure Function access key
+* Firebase project identifiers
+* WalletConnect project identifier
+* Internal service URLs
+
+While backend services correctly enforce authentication, origin checks, and access control, exposing these values in a browser extension increases the application’s attack surface and violates the principle of least privilege.
+
+---
+
+### Affected Assets
+
+#### Exposed in Extension Bundle
+
+* Azure Function endpoints:
+
+  * `/api/smssender`
+  * `/api/emailsender`
+  * `/api/otpsender`
+  * `/api/user`, `/api/wallet`, `/api/transaction`, etc.
+* Azure Function key (`x-functions-key`)
+* Firebase configuration (project ID, API key, VAPID key)
+* WalletConnect project ID
+
+All values are accessible via:
+
+* Browser DevTools
+* Static bundle inspection
+* Any webpage interacting with the extension
+
+---
+
+### Proof of Exposure
+
+Using a standalone HTML page and browser DevTools, the following were confirmed:
+
+* Constants are embedded in compiled JavaScript
+* Identifiers and service endpoints are readable without authentication
+* Requests can be constructed directly using exposed values
+
+---
+
+### Security Controls Observed (Positive Findings)
+
+Backend services correctly enforce:
+
+* CORS origin validation
+
+  ```
+  400 The origin 'null' is not allowed
+  ```
+* Firebase access rules (`403`, `OPERATION_NOT_ALLOWED`)
+* No unauthenticated data access observed
+
+This confirms that **no immediate remote exploitation is possible** using browser-originated requests.
+
+---
+
+### Security Impact
+
+Although no direct abuse was observed during testing, client-side exposure enables:
+
+* Infrastructure enumeration
+* Targeted backend probing from non-browser contexts
+* Easier exploitation if server-side controls regress
+* Increased risk during future feature changes or misconfigurations
+* Leakage of internal architecture details to attackers
+
+Browser extensions should be treated as **fully hostile clients**.
+
+---
+
+### Recommended Remediation
+
+1. **Remove privileged secrets from client bundles**
+
+   * Azure Function keys must never be shipped client-side
+2. **Move privileged calls behind authenticated backend services**
+3. **Use per-session, scoped tokens if client access is unavoidable**
+4. **Audit build pipeline to prevent secret leakage**
+5. **Rotate exposed keys as a precaution**
+
+---
+
+## 🧾 Severity Assessment
+
+| Component                       | Severity      |
+| ------------------------------- | ------------- |
+| Azure Function key exposure     | **Medium**    |
+| Internal API endpoints exposure | Medium        |
+| Firebase config                 | Informational |
+| WalletConnect project ID        | Informational |
+
+---
 Just tell me 👍
 
