@@ -1,0 +1,28 @@
+{
+  "name": "verified-wallet-poc",
+  "version": "1.0.0",
+  "description": "PoC for testing Verified Wallet extension security",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/poc-comprehensive.ts",
+    "poc:keys": "ts-node src/poc-key-management.ts",
+    "poc:transactions": "ts-node src/poc-transaction-signing.ts",
+    "poc:all": "ts-node src/poc-comprehensive.ts",
+    "test:message-flow": "ts-node src/message-flow.ts",
+    "test:boundaries": "ts-node src/trust-boundaries.ts",
+    "test:debug": "ts-node src/debug-utils.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["security", "poc", "wallet", "extension"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@verified-network/verified-custody": "^0.4.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
